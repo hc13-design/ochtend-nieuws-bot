@@ -2,33 +2,40 @@ import os
 import feedparser
 from google import genai
 
-# Initialiseer de Gemini API met je geheime sleutel
-client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+# Controleer of de API-sleutel aanwezig is
+api_key = os.environ.get("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY ontbreekt in de GitHub Secrets!")
+
+client = genai.Client(api_key=api_key)
 
 def fetch_rss(url):
-    feed = feedparser.parse(url)
-    items = []
-    for entry in feed.entries[:10]: # Neem de laatste 10 van elke bron
-        items.append(f"- **{entry.title}**: {getattr(entry, 'summary', '')}")
-    return "\n".join(items)
+    try:
+        feed = feedparser.parse(url)
+        items = []
+        for entry in feed.entries[:8]:
+            title = getattr(entry, 'title', 'Geen titel')
+            summary = getattr(entry, 'summary', '')
+            items.append(f"- **{title}**: {summary}")
+        return "\n".join(items)
+    except Exception as e:
+        print(f"Fout bij ophalen RSS van {url}: {e}")
+        return ""
 
-# Haal nieuws op
-print("Nieuws ophalen...")
+print("Bezig met ophalen van NOS en NU.nl RSS-feeds...")
 nos_nieuws = fetch_rss("https://feeds.nos.nl/nosnieuwsalgemeen")
 nu_nieuws = fetch_rss("https://www.nu.nl/rss/Algemeen")
 
 totaal_nieuws = f"NOS Nieuws:\n{nos_nieuws}\n\nNU.nl Nieuws:\n{nu_nieuws}"
 
-# Vraag Gemini om de top 3 samenvatting
-print("Bezig met samenvatten via AI...")
+print("Bezig met genereren van de samenvatting via Gemini...")
 response = client.models.generate_content(
     model="gemini-1.5-flash",
-    contents=f"Hier is het recente nieuws van vandaag:\n\n{totaal_nieuws}\n\nSelecteer de absolute top 3 belangrijkste of meest interessante nieuwsverhalen van dit moment. Schrijf een heldere, frisse ochtendbriefing in het Nederlands voor elk van de 3 verhalen met een pakkende titel en een korte uitleg. Geef het terug in schone HTML-code (alleen de inhoud binnen <div> of <section> tags, geen volledige html/head tags nodig, wel mooie opmaak met koppen en paragrafen)."
+    contents=f"Hier is het recente nieuws van vandaag:\n\n{totaal_nieuws}\n\nSelecteer de absolute top 3 belangrijkste nieuwsverhalen. Schrijf een heldere ochtendbriefing in het Nederlands met een pakkende titel en korte uitleg per verhaal. Geef schone HTML-code terug (alleen de inhoud binnen <div> of <section> tags, geen volledige html/head tags)."
 )
 
 html_content = response.text
 
-# Maak een volledige index.html pagina aan
 pagina = f"""<!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -36,7 +43,7 @@ pagina = f"""<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mijn Ochtendbriefing</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f7f9fa; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7f9fa; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }}
         h1 {{ color: #111; font-size: 24px; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; }}
         .news-card {{ background: white; padding: 16px; margin-bottom: 16px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }}
         .footer {{ text-align: center; font-size: 12px; color: #888; margin-top: 30px; }}
