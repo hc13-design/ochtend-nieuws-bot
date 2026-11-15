@@ -22,7 +22,7 @@ totaal_nieuws = f"NOS Nieuws:\n{nos_nieuws}\n\nNU.nl Nieuws:\n{nu_nieuws}"
 # Vraag Gemini om de top 3 samenvatting
 print("Bezig met samenvatten via AI...")
 response = client.models.generate_content(
-    model="gemini-2.5-flash",
+    model="gemini-1.5-flash",
     contents=f"Hier is het recente nieuws van vandaag:\n\n{totaal_nieuws}\n\nSelecteer de absolute top 3 belangrijkste of meest interessante nieuwsverhalen van dit moment. Schrijf een heldere, frisse ochtendbriefing in het Nederlands voor elk van de 3 verhalen met een pakkende titel en een korte uitleg. Geef het terug in schone HTML-code (alleen de inhoud binnen <div> of <section> tags, geen volledige html/head tags nodig, wel mooie opmaak met koppen en paragrafen)."
 )
 
